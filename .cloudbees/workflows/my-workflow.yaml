@@ -19,6 +19,7 @@ metadata:
     - name: mlqa
       jobs:
         - deploy-to-mlqa
+        - DeployQA
     - name: mlstage
       jobs:
         - deploy-to-mlstage
@@ -33,26 +34,38 @@ jobs:
         shell: sh
         run: echo "Deploying to mldev"
   deploy-to-mlqa:
-    needs:
-      - deploy-to-mldev
+    needs: deploy-to-mldev
     steps:
       - name: Deploy to mlqa
         uses: docker://golang:1.20.3-alpine3.17
         shell: sh
         run: echo "Deploying to mlqa"
   deploy-to-mlstage:
-    needs:
-      - deploy-to-mlqa
+    needs: DeployQA
     steps:
       - name: Deploy to mlstage
         uses: docker://golang:1.20.3-alpine3.17
         shell: sh
         run: echo "Deploying to mlstage"
   deploy-to-mlprod:
-    needs:
-      - deploy-to-mlstage
+    needs: deploy-to-mlstage
     steps:
       - name: Deploy to mlprod
         uses: docker://golang:1.20.3-alpine3.17
         shell: sh
         run: echo "Deploying to mlprod"
+  DeployQA:
+    needs:
+      - deploy-to-mlqa
+    timeout-minutes: 4320
+    delegates: cloudbees-io/manual-approval/custom-job.yml@v1
+    with:
+      instructions: ""
+      disallowLaunchByUser: false
+      approvers: 5db39244-5a80-11f0-8d6a-42010a83ae57
+      notifyAllEligibleUsers: false
+      approvalInputs: |
+        rel_no:
+          type: string
+          default: "1.0"
+          required: true

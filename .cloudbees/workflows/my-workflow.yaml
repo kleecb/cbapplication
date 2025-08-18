@@ -28,8 +28,6 @@ metadata:
         - deploy-to-mlprod
 jobs:
   deploy-to-mldev:
-    outputs:
-      CODE_COVERAGE: ${{ steps.RunUnitTest.outputs.CODE_COVERAGE }}
     steps:
       - run: echo "Deploying to mldev"
         uses: docker://golang:1.20.3-alpine3.17

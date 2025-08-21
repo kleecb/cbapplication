@@ -19,19 +19,21 @@ metadata:
     - name: mlqa
       jobs:
         - deploy-to-mlqa
-        - DeployQA
+        - Approval-DeployQA
     - name: mlstage
       jobs:
         - deploy-to-mlstage
+        - Approval-DeployStage
     - name: mlprod
       jobs:
         - deploy-to-mlprod
+        - Approval-DeployProd
 jobs:
   deploy-to-mldev:
     steps:
       - run: echo "Deploying to mldev"
         uses: docker://golang:1.20.3-alpine3.17
-        name: Deploy to mldev
+        name: Setup to deploy to mldev
         shell: sh
       - name: runjob
         uses: cloudbees-io/jenkins-run-job@v2
@@ -42,29 +44,28 @@ jobs:
           token: ${{ secrets.WES_JENKINS_TOKEN }}
           job-name: WesTestJob
   deploy-to-mlqa:
-    needs: deploy-to-mldev
+    needs: Approval-DeployQA
     steps:
       - name: Deploy to mlqa
         uses: docker://golang:1.20.3-alpine3.17
         shell: sh
         run: echo "Deploying to mlqa"
   deploy-to-mlstage:
-    needs: DeployQA
     steps:
       - name: Deploy to mlstage
         uses: docker://golang:1.20.3-alpine3.17
         shell: sh
         run: echo "Deploying to mlstage"
+    needs: Approval-DeployStage
   deploy-to-mlprod:
-    needs: deploy-to-mlstage
     steps:
       - name: Deploy to mlprod
         uses: docker://golang:1.20.3-alpine3.17
         shell: sh
         run: echo "Deploying to mlprod"
-  DeployQA:
-    needs:
-      - deploy-to-mlqa
+    needs: Approval-DeployProd
+  Approval-DeployQA:
+    needs: deploy-to-mldev
     timeout-minutes: 4320
     delegates: cloudbees-io/manual-approval/custom-job.yml@v1
     with:
@@ -77,3 +78,21 @@ jobs:
           type: string
           default: "1.0"
           required: true
+  Approval-DeployStage:
+    timeout-minutes: 4320
+    delegates: cloudbees-io/manual-approval/custom-job.yml@v1
+    with:
+      instructions: ""
+      disallowLaunchByUser: false
+      approvers: 5db39244-5a80-11f0-8d6a-42010a83ae57
+      notifyAllEligibleUsers: false
+    needs: deploy-to-mlqa
+  Approval-DeployProd:
+    timeout-minutes: 4320
+    delegates: cloudbees-io/manual-approval/custom-job.yml@v1
+    with:
+      instructions: ""
+      disallowLaunchByUser: false
+      approvers: 5db39244-5a80-11f0-8d6a-42010a83ae57
+      notifyAllEligibleUsers: false
+    needs: deploy-to-mlstage
